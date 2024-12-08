@@ -1,0 +1,49 @@
+name: Deploy PHP Application to Shared Hosting
+
+# Trigger the workflow on pushes to the 'main' branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Shared Hosting
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up PHP environment
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.0' # Replace with your PHP version
+        extensions: mbstring, pdo, tokenizer
+        tools: composer
+
+    # Step 3: Install PHP dependencies using Composer
+    - name: Install Dependencies
+      run: composer install --no-dev --optimize-autoloader
+
+    # Step 4: Prepare files for deployment
+    - name: Prepare Deployment Files
+      run: |
+        # Create a ZIP archive of the application for faster deployment (optional)
+        zip -r app.zip . -x "*.git*" "*.env*" "*.github*"
+
+    # Step 5: Deploy files via FTP
+    - name: Deploy to Shared Hosting via FTP
+      uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      with:
+        server: ${{ secrets.FTP_HOST }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./ # Directory to deploy
+        server-dir: ${{ secrets.FTP_PATH }} # Remote server directory
+
+    # Step 6: Post-deployment notification
+    - name: Deployment Success
+      run: echo "Deployment to shared hosting completed successfully!"
